@@ -23,10 +23,8 @@
 	msgCodigoJaCadastrado: .asciiz "\nCódigo já está cadastrado!"
 .text 
 
-## REGISTRADORES - USO
-# $t0 - Guarda a opção escolhida pelo usuário
 # $s1 - Head
-# $t3 - Armazena endereço do NEXT nó anterior
+
 j main
 
 inserirItem:
@@ -49,18 +47,18 @@ inserirItem:
     	
     	# Lê a entrada do usuário para o código do produto
     	li $v0, 5 # Syscall para ler um inteiro
-    	syscall
-    	move $t1, $v0
+    	syscall # Chama sistema
+    	move $t1, $v0 # Move inteiro lido para $t1
     	
     	# Pede para o usuário entrar com a quantidade do produto
     	li $v0, 4 # Syscall para printar uma string
     	la $a0, textoQuantidadeProduto
-    	syscall
+    	syscall # Chama sistema 
     	
     	# Lê a entrada do usuário para o código do produto
     	li $v0, 5 # Syscall para ler um inteiro
-    	syscall
-    	move $t2, $v0
+    	syscall # Chama sistema
+    	move $t2, $v0 # Move o valor lido para o registrador $t2
     	
     	la $t3, ($s1) # Carrega ponteiro head para $t3
     	beqz $t3, elseInserirNo # Verifica se head já foi iniciado
@@ -83,7 +81,7 @@ inserirItem:
     	bnez $s1, elseApontarHead # Condição para verificar se é o primeiro nó que está sendo criado
     	la $t3, 8($s2)  # Armazenar o valor do next do nó anterior 
     	move $s1, $s2 #Apontar Head para o primeiro nó da lista
-	j voltar
+	j voltar # Vai para o label voltar
 	
     	elseApontarHead:
     	
@@ -99,11 +97,12 @@ inserirItem:
     	voltar:    	    	
 	jr $ra # Volta para main
 	
-elseCodigoJaCadastrado: #TODO
+elseCodigoJaCadastrado: 
     		li $v0, 4
-    		la $a0, msgCodigoJaCadastrado
+    		la $a0, msgCodigoJaCadastrado # Exibe mensagem informando que o código do produto 
+    					# Já se encontra cadastrado
     		syscall
-    		j voltar
+    		j voltar # Vai para o label voltar
     		
 excluirItem:
 	beqz $s1, nenhumItemCadastrado # Verifica se head é nulo ($s1 = 0), 
@@ -353,3 +352,7 @@ sair:
 	
 	li $v0, 10 # Syscall para encerrar programa
 	syscall
+
+	
+					
+	
