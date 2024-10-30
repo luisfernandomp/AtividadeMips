@@ -1,3 +1,8 @@
+## GRUPO
+# Nome: Luís Fernando De Mesquita Pereira  RA: 10410686
+# Nome: Marcelo Luis Simone Lucas RA: 10332213
+# Nome: Rayane Yumi Da Silva Tahara RA: 10410892
+
 .data
 	textoTitulo: .asciiz "\n\n**** SISTEMA DE CONTROLE DE ESTOQUE ****\n"
 	textoMenu: .asciiz "\n1. Inserir um novo item no estoque\n2. Excluir um item do estoque\n3. Buscar um item pelo código\n4. Atualizar quantidade em estoque\n5. Imprimir os produtos em estoque\n6. Sair\nOpção: "
@@ -14,19 +19,20 @@
 	textoTotalItens: .asciiz "\nTotal itens: \t"
 	msgNenhumItemCadastrado: .asciiz "\nNenhum item cadastrado..."
 	
+	msgItemNaoEncontrado: .asciiz "\nItem não encontrado..."
+	msgCodigoJaCadastrado: .asciiz "\nCódigo já está cadastrado!"
 .text 
 
 ## REGISTRADORES - USO
 # $t0 - Guarda a opção escolhida pelo usuário
 # $s1 - Head
 # $t3 - Armazena endereço do NEXT nó anterior
-
 j main
 
 inserirItem:
+	li $s0, 0 # Carrega 0 em $s0 (NULL)
 	bnez $s1, elseInicializarPonteiroHead
 	# Inicializa o ponteiro Head para o primeiro nó da lista encadeada
-	li $s0, 0 # Carrega 0 em $s0 (NULL)
 	la $s1, ($s0) # Carrega o endereço do 1º nó em $s1 (head)
 
 	elseInicializarPonteiroHead:	
@@ -56,6 +62,19 @@ inserirItem:
     	syscall
     	move $t2, $v0
     	
+    	la $t3, ($s1) # Carrega ponteiro head para $t3
+    	beqz $t3, elseInserirNo # Verifica se head já foi iniciado
+    	# Se a lista já contém algum item
+    	
+    	loopVerificaCodigoCadastrado:
+    		lw $t6, 0($t3) # Carrega o código do nó  
+    		lw $t3, 8($t3) # Carrega o contéudo do ponteiro NEXT do nó 
+    		beq $t2, $t6, elseCodigoJaCadastrado # Verifica se o código já está cadastrado na lista 
+    		beqz $t3, elseInserirNo # Se chegou no último nó significa que nenhum item tem o mesmo código,
+    			# Então segue para o label elseInserirNo
+    		j loopVerificaCodigoCadastrado # Continua no laço se next for diferente de NULL (0)
+    		
+    	elseInserirNo:
     	# Armazenar valores no nó
     	sw $t1, 0($s2) # Armazena o código do produto no endereço do nó, do byte 0 até o byte 4
     	sw $t2, 4($s2) # Armazena a quantidade do produto no endereço do nó, do byte 4 até o byte 8
@@ -67,15 +86,95 @@ inserirItem:
 	j voltar
 	
     	elseApontarHead:
-    	sw $s2, 0($t3) # Ponteiro next do nó anterior, apontando para o endereço do próximo nó
-    	la $t3, 8($s2) # Atualiza $t3 com o valor do next do nó anterior
     	
+    	la $t3, ($s1) # Carrega ponteiro head para $t3
+    	loopInserirItem:
+    		la $t4, 8($t3) # Carrega o endereço do ponteiro NEXT do nó 
+    		lw $t3, 8($t3) # Carrega o contéudo do ponteiro NEXT do nó 
+    		bnez $t3, loopInserirItem # Verifica se NEXT é nulo
+    			# Se não for continua no loop, se for então o último nó foi encontrado
+    		
+    	sw $s2, ($t4) # Ponteiro next do nó anterior, apontando para o endereço do próximo nó
+    		
     	voltar:    	    	
 	jr $ra # Volta para main
-
+	
+elseCodigoJaCadastrado: #TODO
+    		li $v0, 4
+    		la $a0, msgCodigoJaCadastrado
+    		syscall
+    		j voltar
+    		
 excluirItem:
-	#TODO
-	jr $ra # Volta para main
+	beqz $s1, nenhumItemCadastrado # Verifica se head é nulo ($s1 = 0), 
+	# caso sim vai para o label nenhumItemCadastrado
+
+	li $v0, 4 # Solicita o código do produto ao usuário
+	la $a0, textoCodigoProduto # Carrega o texto da variável textoCodigoProduto para $a0 
+	syscall # Chama sistema para printar a string
+	
+	li $v0, 5 # Lê o código do produto do usuário                
+	syscall
+	
+	move $t0, $v0 # Move o código do produto informado pelo usuário em $t0
+	move $t1, $s1  # Copia o valor de $s1 (head) para $t1
+	li $t2, 0 # Iniciliza um contador de apoio em 0
+		
+	buscarItemLoop:
+	addi $t2, $t2, 1 # Incremento de $t2 em 1
+	lw $t3, 0($t1) # Carrega o código do produto do nó para $t3
+	
+	beq $t3, $t0, exluirItemEncontrado  # Se igual o item foi encontrado na lista, 
+	# então vai para o label exluirItemEncontrado
+	la $t4, 8($t1) # Armazena o valor do ponteiro NEXT do nó anterior 
+	
+	lw $t1, 8($t1) # Atualiza o ponteiro para o endereço do próximo nó (NEXT)
+	beqz $t1, itemNaoEncontrado # Verifica se existe outro nó, ou seja, se o ponteiro next não é nulo
+	# senão vai para o label itemNaoEncontrado
+	
+	j buscarItemLoop # Volta para o laço
+
+	exluirItemEncontrado:
+	lw $t6, 8($t1) # Carrega para $t6 o endereço do próximo nó (NEXT)
+	
+	beq $t2, 1, elsePrimeiroNo # Verifica se é primeiro nó, usando o contador de apoio $t2, caso seja vai para o label elsePrimeiroNo
+	
+	# Caso não seja o primeiro, nem o último nó
+	lw $t5, 8($t1) # Carrega o ponteiro next do nó atual para $t5
+	sw $t5, ($t4) # Atualiza o ponteiro next do nó anterior com o next do nó atual
+	
+	j voltarMain # Vai para label voltarMain
+	elsePrimeiroNo: 
+	
+	beqz $t6, elsePrimeiroNoNextNulo # Verifica next primeiro nó é nulo, caso sim vai para label elsePrimeiroNoNextNulo
+	
+	# Caso o 1° nó tiver ponteiro NEXT diferente de nulo, então o head será atualizado
+	# para o next do 1º nó
+	lw $t5, 8($t1) # Carrega ponteiro next do primeiro nó para $t5
+	move $s1, $t5 # Atualiza head com ponteiro next do primeiro né
+	
+	j voltarMain   # Vai para label voltarMain
+
+	elsePrimeiroNoNextNulo:
+	move $s1, $zero # Atualiza o head para nulo, pois o primeiro nó foi excluido
+		      # E como não existem outros nós, o head volta para 0 (NULL)
+
+	j voltarMain # Vai para label voltarMain
+	
+	nenhumItemCadastrado:
+		li $v0, 4 # Imprime mensagem informando que nenhum item foi cadastrado ainda
+		la $a0, msgNenhumItemCadastrado # Carrega o endereço da variável msgNenhumItemCadastrado para $a0
+		syscall # Chama sistema 
+		j voltarMain # Vai para label voltarMain
+		
+	itemNaoEncontrado:
+		li $v0, 4 # Imprime mensagem de item não encontrado
+		la $a0, msgItemNaoEncontrado # Carrega o endereço da variável msgItemNaoEncontrado para $a0
+		syscall # Chama sistema
+		j voltarMain # Vai para label voltarMain
+
+	voltarMain:
+		jr $ra # Volta para main
 
 buscarItemPorCodigo:
 	# Solicita o código do produto ao usuário
