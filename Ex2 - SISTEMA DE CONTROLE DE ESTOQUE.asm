@@ -224,7 +224,7 @@ itemEncontrado:
 ItemNãoEncontrado:
 	# Imprime mensagem de item não encontrado
 	li $v0, 4
-	la $a0, msgNenhumItemCadastrado
+	la $a0, msgItemNaoEncontrado
 	syscall
 
 fimBuscar:
@@ -236,8 +236,10 @@ atualizarQuantidadeItem:
 	jr $ra # Volta para main			
 
 imprimirItens:
-
-	bnez $s1, elseVerificarListaVazia # Verifica se a lista não está vazia
+	li $t7, 0 # Variável de controle, para exibir o total de itens na listagem
+	la $t4, ($s1) # Ponteiro auxiliar para percorrer a lista, $t4 = HEAD
+	
+	bnez $t4, elseVerificarListaVazia # Verifica se a lista não está vazia
 	li $v0, 4 
 	la $a0, msgNenhumItemCadastrado # Informa ao usuário que a lista não tem nenhum item 
 	syscall
@@ -251,14 +253,11 @@ imprimirItens:
 	li $v0, 4 
 	la $a0, textoImprimirEstoque # Imprimindo delimitador 
 	syscall
-
-	li $t5, 0 # Variável de controle, para exibir o total de itens na listagem
-	la $t4, ($s1) # Ponteiro auxiliar para percorrer a lista, $t5 = HEAD
 	
 	loop_imprimirItens:
 		beqz $t4, fim # Se contador chegou no último nó para o loop
 		
-		addi $t5, $t5, 1
+		addi $t7, $t7, 1
 		li $v0, 4 
 		la $a0, delimitador # Imprimindo delimitador 
 		syscall
@@ -283,6 +282,8 @@ imprimirItens:
 		
 		j loop_imprimirItens
 	fim: 
+	
+	beqz $t7, elseTotalZero
 	li $v0, 4 
 	la $a0, delimitador # Imprimindo delimitador 
 	syscall
@@ -292,13 +293,14 @@ imprimirItens:
 	syscall
 	
 	li $v0, 1
-	la $a0, ($t5) # Imprimindo total de itens
+	la $a0, ($t7) # Imprimindo total de itens
 	syscall
 	
 	li $v0, 4 
 	la $a0, delimitador # Imprimindo delimitador 
 	syscall
 		
+	elseTotalZero: 
 	jr $ra # Volta para main
 
 opcaoInvalida:
@@ -320,38 +322,38 @@ main:
 		syscall
 		move $t0, $v0 # Move a opção escolhida para $t0
 	
-		bne $t0, 1, case2
-		jal inserirItem
-		j loop
+		bne $t0, 1, case2 # Se $t0 != 1 pula para o label case2, se não chama a função inserirItem
+		jal inserirItem 
+		j loop # Continua no loop, exibindo o menu
 		case2:
-		bne $t0, 2, case3
+		bne $t0, 2, case3 # Se $t0 != 2 pula para o label case3, se não chama a função excluirItem
 		jal excluirItem
-		j loop
+		j loop # Continua no loop, exibindo o menu
 		case3:
-		bne $t0, 3, case4
+		bne $t0, 3, case4 # Se $t0 != 3 pula para o case 4, se não chama a função buscarItemPorCodigo
 		jal buscarItemPorCodigo
-		j loop
+		j loop # Continua no loop, exibindo o menu
 		case4:
-		bne $t0, 4, case5
+		bne $t0, 4, case5 # Se $t0 != 4 pula para o label case5, se não chama a função atualizarQuantidadeItem
 		jal atualizarQuantidadeItem
-		j loop
+		j loop # Continua no loop, exibindo o menu
 		case5:
-		bne $t0, 5, case6
+		bne $t0, 5, case6 # Se $t0 != 5 pula para o label case6, se não chama a função imprimirItens
 		jal imprimirItens
-		j loop
+		j loop # Continua no loop, exibindo o menu
 		case6:
-		beq $t0, 6, sair
+		beq $t0, 6, sair # Se $t0 != 6 chama a função opcaoInvalida
 		jal opcaoInvalida
-		j loop
+		j loop # Continua no loop, exibindo o menu
 		
 	
 sair:
 	li $v0, 4 # Printar string textoSair para o usuário
-	la $a0, textoSair
-	syscall
+	la $a0, textoSair # Carrega o endereço de memória da variável textoSair para $a0
+	syscall # Chama sistema
 	
 	li $v0, 10 # Syscall para encerrar programa
-	syscall
+	syscall # Chama sistema
 
 	
 					
