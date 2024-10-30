@@ -78,8 +78,60 @@ excluirItem:
 	jr $ra # Volta para main
 
 buscarItemPorCodigo:
-	#TODO
-	jr $ra # Volta para main	
+	# Solicita o código do produto ao usuário
+	li $v0, 4               
+	la $a0, textoCodigoProduto
+	syscall
+
+	# Lê o código do produto do usuário
+	li $v0, 5                
+	syscall
+	move $t6, $v0            # Armazena o código que o usuário quer buscar em $t6
+
+	# Inicializa o ponteiro em $t4, onde $s1 é o endereço de memoria inicial[head]
+	move $t4, $s1           
+
+buscarlLoop:
+	# Verifica se o ponteiro em armazenado em $t4 é nulo, caso sim itemNãoEncontrado
+	beqz $t4, ItemNãoEncontrado
+
+    
+	lw $t7, 0($t4)           # Carrega o código do produto da lista em $t7
+	beq $t6, $t7, itemEncontrado  #Caso o Código for igual, ItemEncontrado
+
+    	# Move para o próximo nó
+	lw $t4, 8($t4)           # Atualiza $t4 com o endereço do próximo nó ou null
+	j buscarlLoop            # Repeti o Loop
+
+itemEncontrado:
+	# Imprime o código do produto encontrado
+	li $v0, 4               
+	la $a0, textoExibeCodigoProduto
+	syscall
+	#imprimi o Código do produto encontrado
+	li $v0, 1                
+	move $a0, $t6
+	syscall
+
+	# Imprime a quantidade do produto encontrado
+	li $v0, 4                
+	la $a0, textoExibeQuantidadeProduto
+	syscall
+	#Carrega a quantidade que está alocada no proximo endereço(+4) em $a0
+	lw $a0, 4($t4)           
+	li $v0, 1                # Realiza o print
+	syscall
+	j fimBuscar             # Finaliza a busca
+
+ItemNãoEncontrado:
+	# Imprime mensagem de item não encontrado
+	li $v0, 4
+	la $a0, msgNenhumItemCadastrado
+	syscall
+
+fimBuscar:
+	jr $ra                   # Retorna para a função principal
+	
 	
 atualizarQuantidadeItem:
 	#TODO
@@ -202,6 +254,3 @@ sair:
 	
 	li $v0, 10 # Syscall para encerrar programa
 	syscall
-	
-					
-	
