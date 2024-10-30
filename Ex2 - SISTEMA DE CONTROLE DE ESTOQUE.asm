@@ -21,6 +21,7 @@
 	
 	msgItemNaoEncontrado: .asciiz "\nItem não encontrado..."
 	msgCodigoJaCadastrado: .asciiz "\nCódigo já está cadastrado!"
+	textoQuantidadeItens: .asciiz "\nInforme a quantidade para atualização: "
 .text 
 
 # $s1 - Head
@@ -232,7 +233,43 @@ fimBuscar:
 	
 	
 atualizarQuantidadeItem:
-	#TODO
+	beqz $s1, nenhumItemCadastrado # Verifica se head é nulo ($s1 = 0), 
+	# caso sim vai para o label nenhumItemCadastrado
+
+	li $v0, 4 # Solicita o código do produto ao usuário
+	la $a0, textoCodigoProduto # Carrega o texto da variável textoCodigoProduto para $a0 
+	syscall # Chama sistema para printar a string
+	
+	li $v0, 5 # Lê o código do produto do usuário                
+	syscall
+	
+	move $t0, $v0 # Move o código do produto informado pelo usuário em $t0
+	move $t1, $s1  # Copia o valor de $s1 (head) para $t1
+	
+	buscarItemQuantidadeLoop:
+	lw $t3, 0($t1) # Carrega o código do produto do nó para $t3
+	
+	beq $t3, $t0, atualizarQuantidade # Se igual o item foi encontrado na lista, 
+	# então vai para o label atualizarQuantidade
+	
+	lw $t1, 8($t1) # Atualiza o ponteiro para o endereço do próximo nó (NEXT)
+	beqz $t1, itemNaoEncontrado # Verifica se existe outro nó, ou seja, se o ponteiro next não é nulo
+	# senão vai para o label itemNaoEncontrado
+	
+	j buscarItemQuantidadeLoop # Volta para o laço
+
+	atualizarQuantidade:
+	li $v0, 4 # Solicita o código do produto ao usuário
+	la $a0, textoQuantidadeItens # Carrega o texto da variável textoQuantidadeItens para $a0 
+	syscall # Chama sistema para printar a string
+	
+	li $v0, 5 # Lê o código do produto do usuário                
+	syscall
+	
+	move $t0, $v0 # Move o código do produto informado pelo usuário em $t0
+
+	sw $t0, 4($t1)
+	
 	jr $ra # Volta para main			
 
 imprimirItens:
